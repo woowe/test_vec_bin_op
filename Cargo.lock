@@ -2,15 +2,9 @@
 name = "test_vec_bin_op"
 version = "0.1.0"
 dependencies = [
- "crossbeam 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.4.2 (git+https://github.com/nikomatsakis/rayon.git)",
 ]
-
-[[package]]
-name = "crossbeam"
-version = "0.2.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "deque"
@@ -52,7 +46,6 @@ dependencies = [
 ]
 
 [metadata]
-"checksum crossbeam 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)" = "0c5ea215664ca264da8a9d9c3be80d2eaf30923c259d03e870388eb927508f97"
 "checksum deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1614659040e711785ed8ea24219140654da1729f3ec8a47a9719d041112fe7bf"
 "checksum libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)" = "408014cace30ee0f767b1c4517980646a573ec61a57957aeeabcac8ac0a02e8d"
 "checksum num_cpus 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a859041cbf7a70ea1ece4b87d1a2c6ef364dcb68749c88db1f97304b9ec09d5f"
