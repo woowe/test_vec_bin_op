@@ -19,7 +19,7 @@ macro_rules! unroll_by_4 {
     }}
 }
 
-pub fn vec_bin_op_mut<F>(u: &[f64], v: &[f64], len: usize, dst: &mut [f64], f: &F) -> ()
+pub fn vec_bin_op_mut<F>(u: &[f64], v: &[f64], dst: &mut [f64], f: &F) -> ()
 where F: Fn(f64, f64) -> f64 + Send + Sync + 'static
 {
     let mut x_iter = u.iter();
@@ -41,7 +41,7 @@ pub fn vec_bin_op_2<F>(u: &[f64], v: &[f64], f: &F) -> Vec<f64>
         out_vec.set_len(len);
     }
 
-    vec_bin_op_mut(u, v, len, &mut out_vec, f);
+    vec_bin_op_mut(u, v, &mut out_vec, f);
 
     return out_vec;
 }
@@ -91,7 +91,7 @@ pub fn vec_bin_op_split<F>(u: &[f64], v: &[f64], dst: &mut [f64], chunk_size: &u
 
     if u.len() <= *chunk_size {
         // println!("LEN: {}", u.len());
-        vec_bin_op_mut(u, v, u.len(), dst, f);
+        vec_bin_op_mut(u, v, dst, f);
         return;
     }
 
@@ -102,6 +102,30 @@ pub fn vec_bin_op_split<F>(u: &[f64], v: &[f64], dst: &mut [f64], chunk_size: &u
 
     rayon::join(|| vec_bin_op_split(x_left, y_left, dst_left, chunk_size, f),
              || vec_bin_op_split(x_right, y_right, dst_right, chunk_size, f));
+}
+
+pub fn vec_bin_op_crossbeam<F>(u: &[f64], v: &[f64], chunk_size: &usize, f: &F) -> Vec<f64>
+    where F: Fn(f64, f64) -> f64 + Send + Sync + 'static
+{
+    let len = u.len();
+    debug_assert!(len == v.len());
+
+    let mut out_vec = Vec::with_capacity(len);
+    unsafe {
+        out_vec.set_len(len);
+    }
+
+    crossbeam::scope(|scope| {
+        let mut out_chunks = out_vec[..len].chunks_mut(*chunk_size);
+        for (x_chunk, y_chunk) in u.chunks(*chunk_size).zip(v.chunks(*chunk_size)) {
+            let out_chunk = out_chunks.next().unwrap();
+            scope.spawn(move || {
+                vec_bin_op_mut(x_chunk, y_chunk, out_chunk, f);
+            });
+        }
+    });
+
+    out_vec
 }
 
 pub fn vec_bin_op_threaded<F>(u: &[f64], v: &[f64], chunk_size: &usize, f: &F) -> Vec<f64>
@@ -163,12 +187,13 @@ fn bench_vec_bin_threaded(b: &mut Bencher) {
 }
 
 fn main() {
-    let m = vec![1.; 16000];
-    let m1 = vec![1.; 16000];
-    println!("chunk_size: {:?}", get_chunk_size(&m, &m1));
+    let m = vec![1.; 1024];
+    let m1 = vec![1.; 1024];
+    // println!("chunk_size: {:?}", get_chunk_size(&m, &m1));
     let f = |x, y| x + y;
-    let vm = vec_bin_op(&m, &m1, &f);
-    let vtm = vec_bin_op_threaded(&m, &m1, &get_chunk_size(&m, &m1), &f);
-    assert!(vm == vtm);
-    println!("Calculated correctly!");
+    // let vm = vec_bin_op_2(&m, &m1, &f);
+    // let vm = vec_bin_op_threaded(&m, &m1, &128, &f);
+    let vm = vec_bin_op_crossbeam(&m, &m1, &128, &f);
+    // assert!(vm == vtm);
+    println!("{:?}", vm);
 }
